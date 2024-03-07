@@ -1,0 +1,77 @@
+<html>
+    <head>
+        <title>Webpack Debug Environment</title>
+    </head>
+    <body>
+        <script>
+            const config = {
+            	name : prompt('webpack name?')
+            }
+            
+            var cache = {};
+            let modules = {};
+            	
+            // The require function
+            function require(moduleId) {
+            	// Check if module is in cache
+            	var cachedModule = cache[moduleId];
+            	if (cachedModule !== undefined) {
+            		return cachedModule.exports;
+            	}
+            
+            	// Create a new module (and put it into the cache)
+            	var module = cache[moduleId] = {
+            		id : moduleId,
+            		loaded : true,
+            		exports: {}
+            	};
+            	
+            	// Execute the module function
+            	modules[moduleId](module, module.exports, require);
+            	
+            	// Return the exports of the module
+            	return module.exports;
+            }
+            	
+            // expose the modules and cache objects
+            require.m = modules;
+            require.c = cache;
+            		
+            // install a JSONP callback for chunk loading
+            var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
+            	var [chunkIds, moreModules, runtime] = data;
+            	// add "moreModules" to the modules object,
+            	// then flag all "chunkIds" as loaded and fire callback
+            	var moduleId, chunkId, i = 0;
+            	if(chunkIds.some((id) => (modules[id] !== 0))) {
+            		for(moduleId in moreModules) {
+            			if(Object.prototype.hasOwnProperty.call(moreModules, moduleId)) {
+            				require.m[moduleId] = moreModules[moduleId];
+            			}
+            		}
+            		if (runtime) {
+            			if(typeof runtime === 'function') {
+            				runtime(require);
+            			} else {
+            				Object.values(runtime[0]).forEach((moduleToRun)=>{
+            					require(moduleToRun)
+            				})
+            			}
+            		}
+            	}
+            	if(parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+            	for(;i < chunkIds.length; i++) {
+            		chunkId = chunkIds[i];
+            		if(Object.prototype.hasOwnProperty.call(modules, chunkId) && modules[chunkId]) {
+            			modules[chunkId][0]();
+            		}
+            		modules[chunkId] = 0;
+            	}
+            }
+            		
+            var chunkLoadingGlobal = window[config.name] = window[config.name] || [];
+            chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
+            chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
+        </script>
+    </body>
+</html>
